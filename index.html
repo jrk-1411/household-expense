@@ -78,6 +78,8 @@
   .lock{font-size:11px;color:var(--warn)}
   .txn .det{font-size:12px;color:var(--faint);margin-top:2px}
   .txn .val{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  .txn .del{background:none;border:none;color:var(--faint);font-size:20px;cursor:pointer;padding:2px 4px;margin:-4px -4px -4px 4px;line-height:1}
+  .txn .del:active{color:var(--danger)}
   .day-label{font-size:11.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px;margin:14px 2px 8px;display:flex;justify-content:space-between}
   .empty{text-align:center;padding:44px 20px;color:var(--faint)}
   .empty .big{font-size:32px;margin-bottom:10px}
@@ -411,9 +413,11 @@ function render(){
       const lock=e.visibility==="private"?`<span class="lock">🔒</span>`:"";
       const who=memberName(e.incurred_by);
       const byline=e.logged_by!==e.incurred_by?`${esc(e.category)} · ${esc(who)} · logged by ${esc(memberName(e.logged_by))}`:`${esc(e.category)} · ${esc(who)}`;
+      const canDel=e.logged_by===me.id;
+      const delBtn=canDel?`<button class="del" onclick="askDelete('${e.id}',event)" aria-label="Delete">×</button>`:"";
       return `<li class="txn"><span class="dot" style="background:${catColor(e.category)}"></span>
         <div class="meta"><div class="note">${lock}${esc(e.note||e.category)}</div><div class="det">${byline}</div></div>
-        <span class="val">${fmt(e.amount)}</span></li>`;
+        <span class="val">${fmt(e.amount)}</span>${delBtn}</li>`;
     }).join("");
     return `<div class="day-label"><span>${dayLabel(date)}</span><span>${fmt(dayTot)}</span></div><ul class="txns">${lis}</ul>`;
   }).join("");
@@ -458,6 +462,15 @@ function renderIncChips(){
   }).join("");
 }
 function pickInc(id){if(entry.vis==="private"&&id!==me.id)return;entry.inc=id;renderIncChips()}
+
+async function askDelete(id,ev){
+  if(ev)ev.stopPropagation();
+  if(!confirm("Delete this expense? This removes it for everyone."))return;
+  const {error}=await sb.from("expenses").update({deleted:true}).eq("id",id);
+  if(error){toast(error.message);return}
+  toast("Deleted");
+  loadExpenses();
+}
 
 async function saveExpense(){
   const amt=parseFloat(($("amtField").value||"").replace(/[^0-9.]/g,""));
