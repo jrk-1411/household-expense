@@ -145,6 +145,8 @@
   /* ---------- expenses sub-view ---------- */
   .subhead{display:flex;align-items:center;gap:12px;padding:18px 0 8px}
   .back-btn{background:var(--card);border:1px solid var(--line);color:var(--text);width:38px;height:38px;border-radius:12px;font-size:18px;cursor:pointer;display:grid;place-items:center;flex-shrink:0}
+  .add-btn{margin-left:auto;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent-deep));color:#04140d;border:none;border-radius:12px;padding:0 16px;height:38px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;box-shadow:0 6px 18px rgba(52,224,161,.28)}
+  .add-btn:active{transform:scale(.96)}
   .back-btn:active{transform:scale(.94)}
   .subhead h2{font-size:19px;font-weight:700;letter-spacing:-.3px}
   .filter-row{display:flex;gap:7px;margin-bottom:16px}
@@ -337,6 +339,7 @@
     <div class="subhead">
       <button class="back-btn" onclick="goDash()">‹</button>
       <h2>Expenses</h2>
+      <button class="add-btn" onclick="openEntry()">＋ Add</button>
     </div>
     <div class="filter-row">
       <button class="on" id="fAll" onclick="setFilter('all')">All shared</button>
@@ -346,7 +349,6 @@
     <div class="ptr" id="ptr"><span class="btn-spin"></span></div>
     <div id="txnList"></div>
   </div>
-  <button class="fab above-tabs" onclick="openEntry()">＋ Add</button>
 </div>
 
 <!-- ============ ANALYTICS view ============ -->
