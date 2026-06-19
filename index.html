@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0e1016">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<title>Ledger — Household Expenses</title>
+
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Ledger%22%2C%22short_name%22%3A%22Ledger%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230e1016%22%2C%22theme_color%22%3A%22%230e1016%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2522%2520viewBox%253D%25220%25200%2520192%2520192%2522%253E%253Crect%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252242%2522%2520fill%253D%2522%25230e1016%2522%252F%253E%253Ctext%2520x%253D%252296%2522%2520y%253D%2522132%2522%2520font-size%253D%252296%2522%2520text-anchor%253D%2522middle%2522%2520fill%253D%2522%252356d6a0%2522%2520font-family%253D%2522sans-serif%2522%2520font-weight%253D%2522bold%2522%253E%25E2%2582%25B9%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+
+<style>
+  :root{
+    --bg:#0e1016;--surface:#161922;--surface-2:#1d212c;--line:#262b38;
+    --text:#eef1f6;--muted:#8d93a3;--faint:#5a6072;
+    --accent:#56d6a0;--accent-dim:#2f6b54;--danger:#e8736b;--warn:#e3b25a;--info:#6aa8e8;
+    --r:16px;--r-sm:11px;
+    --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overscroll-behavior-y:none}
+  body{padding-top:var(--safe-top)}
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px}
+  .hidden{display:none!important}
+
+  /* ---------- auth screen ---------- */
+  #authView{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:0 24px;max-width:420px;margin:0 auto}
+  .brand{font-size:34px;font-weight:680;letter-spacing:-1px;text-align:center;margin-bottom:6px}
+  .brand span{color:var(--accent)}
+  .tag{text-align:center;color:var(--muted);font-size:14px;margin-bottom:32px}
+  .auth-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px}
+  .auth-tabs{display:flex;gap:6px;margin-bottom:18px;background:var(--surface-2);border-radius:10px;padding:4px}
+  .auth-tabs button{flex:1;background:none;border:none;color:var(--muted);padding:9px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer}
+  .auth-tabs button.on{background:var(--accent);color:#08130d}
+  .fld{margin-bottom:13px}
+  .fld label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+  .fld input{width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:var(--r-sm);padding:13px 14px;font-size:15px;outline:none}
+  .fld input:focus{border-color:var(--accent-dim)}
+  .btn-primary{width:100%;background:var(--accent);color:#08130d;border:none;border-radius:var(--r-sm);padding:15px;font-size:16px;font-weight:680;cursor:pointer;margin-top:4px}
+  .btn-primary:active{transform:scale(.99)}
+  .btn-primary:disabled{opacity:.5}
+  .auth-msg{font-size:13px;text-align:center;margin-top:14px;min-height:18px}
+  .auth-msg.err{color:var(--danger)}
+  .auth-msg.ok{color:var(--accent)}
+
+  /* ---------- household setup ---------- */
+  #setupView{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:0 24px;max-width:420px;margin:0 auto}
+  .setup-opt{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:14px}
+  .setup-opt h3{font-size:16px;margin-bottom:6px}
+  .setup-opt p{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+
+  /* ---------- main app ---------- */
+  header{padding:16px 0 8px;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:20px;font-weight:650;letter-spacing:-.4px}
+  header h1 span{color:var(--accent)}
+  .hdr-right{display:flex;align-items:center;gap:6px}
+  .icon-btn{background:var(--surface);border:1px solid var(--line);color:var(--text);width:34px;height:34px;border-radius:10px;font-size:15px;display:grid;place-items:center;cursor:pointer}
+  .month-nav{display:flex;align-items:center;gap:4px;margin:4px 0 12px}
+  .month-nav button{background:var(--surface);border:1px solid var(--line);color:var(--text);width:32px;height:32px;border-radius:9px;font-size:17px;cursor:pointer}
+  .month-label{flex:1;text-align:center;font-size:14px;color:var(--muted)}
+
+  .summary{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:16px}
+  .summary .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+  .summary .total{font-size:34px;font-weight:680;letter-spacing:-1px;margin-top:4px;font-variant-numeric:tabular-nums}
+  .summary .sub{font-size:13px;color:var(--faint);margin-top:3px}
+
+  .filter-row{display:flex;gap:6px;margin-bottom:14px}
+  .filter-row button{flex:1;background:var(--surface);border:1px solid var(--line);color:var(--muted);padding:8px;border-radius:9px;font-size:12.5px;cursor:pointer}
+  .filter-row button.on{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
+
+  ul.txns{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .txn{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;display:flex;align-items:center;gap:11px}
+  .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .txn .meta{flex:1;min-width:0}
+  .txn .note{font-size:14.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+  .lock{font-size:11px;color:var(--warn)}
+  .txn .det{font-size:12px;color:var(--faint);margin-top:2px}
+  .txn .val{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  .day-label{font-size:11.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px;margin:14px 2px 8px;display:flex;justify-content:space-between}
+  .empty{text-align:center;padding:44px 20px;color:var(--faint)}
+  .empty .big{font-size:32px;margin-bottom:10px}
+
+  .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + var(--safe-bot));z-index:30;background:var(--accent);color:#08130d;border:none;height:54px;padding:0 26px;border-radius:27px;font-size:16px;font-weight:650;cursor:pointer;box-shadow:0 8px 28px rgba(86,214,160,.32)}
+  .fab:active{transform:translateX(-50%) scale(.96)}
+
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;opacity:0;pointer-events:none;transition:opacity .22s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--surface);border-radius:22px 22px 0 0;border-top:1px solid var(--line);padding:8px 18px calc(22px + var(--safe-bot));transform:translateY(100%);transition:transform .26s cubic-bezier(.32,.72,0,1);max-width:520px;margin:0 auto;max-height:90vh;overflow-y:auto}
+  .sheet.open{transform:translateY(0)}
+  .grab{width:38px;height:4px;background:var(--line);border-radius:2px;margin:8px auto 14px}
+  .sheet h3{font-size:16px;font-weight:600;margin-bottom:16px}
+
+  .amt-input{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:14px}
+  .amt-input .cur{font-size:26px;color:var(--muted);font-weight:600}
+  .amt-input input{flex:1;background:none;border:none;color:var(--text);font-size:30px;font-weight:650;outline:none;width:100%;font-variant-numeric:tabular-nums}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);background:var(--surface-2);color:var(--muted);padding:9px 14px;border-radius:20px;font-size:13.5px;cursor:pointer;display:flex;align-items:center;gap:7px}
+  .chip .cdot{width:8px;height:8px;border-radius:50%}
+  .chip.sel{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
+  .seg{display:flex;gap:6px;background:var(--surface-2);border-radius:10px;padding:4px}
+  .seg button{flex:1;background:none;border:none;color:var(--muted);padding:11px;border-radius:7px;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .seg button.on{background:var(--accent);color:#08130d}
+  .seg button.on.priv{background:var(--warn);color:#3a2c06}
+  .save-btn{width:100%;background:var(--accent);color:#08130d;border:none;border-radius:var(--r-sm);padding:16px;font-size:16px;font-weight:680;margin-top:8px;cursor:pointer}
+  .save-btn:disabled{opacity:.5}
+
+  .menu-sheet .row{display:flex;align-items:center;gap:12px;padding:15px 4px;font-size:15px;border-bottom:1px solid var(--line);cursor:pointer}
+  .menu-sheet .row:last-child{border-bottom:none}
+  .menu-sheet .row.danger{color:var(--danger)}
+  .info-line{font-size:13px;color:var(--muted);padding:8px 4px;line-height:1.5}
+  .info-line b{color:var(--text)}
+  .code-pill{display:inline-block;background:var(--surface-2);border:1px solid var(--line);padding:3px 10px;border-radius:7px;font-family:monospace;font-size:14px;color:var(--accent);letter-spacing:1px}
+
+  .toast{position:fixed;bottom:calc(90px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface-2);border:1px solid var(--line);color:var(--text);padding:11px 18px;border-radius:12px;font-size:14px;z-index:60;opacity:0;pointer-events:none;transition:all .25s;max-width:90%;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #loadingView{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+  .spin{width:22px;height:22px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.7s linear infinite;margin-right:10px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .field-label{font-size:12px;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px;display:block}
+</style>
+</head>
+<body>
+
+<div id="loadingView"><span class="spin"></span> Connecting…</div>
+
+<!-- ============ AUTH ============ -->
+<div id="authView" class="hidden">
+  <div class="brand">Led<span>ger</span></div>
+  <div class="tag">Shared household expenses</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button id="tabLogin" class="on" onclick="setAuthMode('login')">Log in</button>
+      <button id="tabSignup" onclick="setAuthMode('signup')">Sign up</button>
+    </div>
+    <div class="fld" id="nameFld">
+      <label>Your name</label>
+      <input id="authName" type="text" placeholder="e.g. Jaswanth" autocomplete="name">
+    </div>
+    <div class="fld">
+      <label>Email</label>
+      <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="fld">
+      <label>Password</label>
+      <input id="authPass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="authBtn" onclick="doAuth()">Log in</button>
+    <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
+
+<!-- ============ HOUSEHOLD SETUP ============ -->
+<div id="setupView" class="hidden">
+  <div class="brand" style="margin-bottom:24px">Welcome 👋</div>
+  <div class="setup-opt">
+    <h3>Create a household</h3>
+    <p>Start fresh and invite family members with a join code.</p>
+    <div class="fld"><input id="newHhName" type="text" placeholder="Household name (e.g. Home)"></div>
+    <button class="btn-primary" onclick="createHousehold()">Create</button>
+  </div>
+  <div class="setup-opt">
+    <h3>Join a household</h3>
+    <p>Enter the 6-character code shared by a member.</p>
+    <div class="fld"><input id="joinCode" type="text" placeholder="e.g. a3f9c2" maxlength="6" style="text-transform:lowercase"></div>
+    <button class="btn-primary" onclick="joinHousehold()">Join</button>
+  </div>
+  <div class="auth-msg" id="setupMsg"></div>
+  <div style="text-align:center;margin-top:18px"><a href="#" onclick="doSignout();return false" style="color:var(--faint);font-size:13px">Sign out</a></div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="appView" class="hidden">
+  <div class="wrap">
+    <header>
+      <h1>Led<span>ger</span></h1>
+      <div class="hdr-right">
+        <button class="icon-btn" onclick="openMenu()" aria-label="Menu">⋯</button>
+      </div>
+    </header>
+
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">‹</button>
+      <div class="month-label" id="monthLabel">—</div>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+
+    <div class="summary">
+      <div class="lbl" id="sumLbl">Household this month</div>
+      <div class="total" id="monthTotal">₹0</div>
+      <div class="sub" id="monthSub">No expenses yet</div>
+    </div>
+
+    <div class="filter-row">
+      <button class="on" id="fAll" onclick="setFilter('all')">All shared</button>
+      <button id="fMine" onclick="setFilter('mine')">Mine</button>
+      <button id="fPrivate" onclick="setFilter('private')">My private</button>
+    </div>
+
+    <div id="txnList"></div>
+  </div>
+  <button class="fab" onclick="openEntry()">＋ Add expense</button>
+</div>
+
+<!-- ENTRY SHEET -->
+<div class="scrim" id="scrim" onclick="closeSheets()"></div>
+<div class="sheet" id="entrySheet">
+  <div class="grab"></div>
+  <h3>Add expense</h3>
+  <div class="amt-input"><span class="cur">₹</span><input id="amtField" type="text" inputmode="decimal" placeholder="0"></div>
+
+  <span class="field-label">Category</span>
+  <div class="chips" id="catChips" style="margin-bottom:16px"></div>
+
+  <span class="field-label">Visibility</span>
+  <div class="seg" id="visSeg" style="margin-bottom:16px">
+    <button class="on" data-vis="shared" onclick="setVis('shared')">👥 Shared</button>
+    <button data-vis="private" onclick="setVis('private')">🔒 Private</button>
+  </div>
+
+  <span class="field-label" id="incLbl">Spent by</span>
+  <div class="chips" id="incChips" style="margin-bottom:16px"></div>
+
+  <span class="field-label">Note (optional)</span>
+  <div class="fld"><input id="noteField" type="text" placeholder="e.g. weekly groceries" style="width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:var(--r-sm);padding:13px 14px;font-size:15px;outline:none"></div>
+
+  <span class="field-label">Date</span>
+  <div class="fld"><input id="dateField" type="date" style="width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:var(--r-sm);padding:13px 14px;font-size:15px;outline:none"></div>
+
+  <button class="save-btn" id="saveBtn" onclick="saveExpense()">Save expense</button>
+</div>
+
+<!-- MENU SHEET -->
+<div class="sheet menu-sheet" id="menuSheet">
+  <div class="grab"></div>
+  <h3>Menu</h3>
+  <div class="info-line">Signed in as <b id="meName">—</b></div>
+  <div class="info-line">Household: <b id="hhName">—</b></div>
+  <div class="info-line">Invite code: <span class="code-pill" id="hhCode">——</span> <span style="color:var(--faint)">— share to add members</span></div>
+  <div class="row" onclick="copyCode()" style="margin-top:8px"><span>📋</span> Copy invite code</div>
+  <div class="row danger" onclick="doSignout()"><span>⏻</span> Sign out</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://hgmubkaippgxczshwhrt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_2gA1bFP7ArPil1pSpMBMHA_h-FaWJMv";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CATEGORIES = [
+  {name:"Groceries",color:"#56d6a0"},{name:"Bills",color:"#e3b25a"},
+  {name:"Rent",color:"#e8736b"},{name:"Transport",color:"#6aa8e8"},
+  {name:"Food",color:"#b78ce8"},{name:"Medical",color:"#e88cc4"},
+  {name:"Shopping",color:"#7ad4c4"},{name:"Other",color:"#8d93a3"}
+];
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+let me=null;            // {id, display_name, household_id}
+let household=null;     // {id, name, join_code}
+let members=[];         // [{id, display_name}]
+let expenses=[];        // current month's rows visible to me
+let viewDate=new Date();
+let authMode="login";
+let entry={vis:"shared",cat:null,inc:null};
+let filter="all";
+let realtimeChan=null;
+
+const $=id=>document.getElementById(id);
+function show(view){["loadingView","authView","setupView","appView"].forEach(v=>$(v).classList.toggle("hidden",v!==view))}
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2000)}
+function fmt(n){return "₹"+Math.round(n).toLocaleString("en-IN")}
+function catColor(n){const c=CATEGORIES.find(c=>c.name===n);return c?c.color:"#8d93a3"}
+function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+/* ---------- AUTH ---------- */
+function setAuthMode(m){
+  authMode=m;
+  $("tabLogin").classList.toggle("on",m==="login");
+  $("tabSignup").classList.toggle("on",m==="signup");
+  $("nameFld").classList.toggle("hidden",m==="login");
+  $("authBtn").textContent=m==="login"?"Log in":"Create account";
+  $("authMsg").textContent="";
+}
+async function doAuth(){
+  const email=$("authEmail").value.trim(), pass=$("authPass").value, name=$("authName").value.trim();
+  const msg=$("authMsg"); msg.className="auth-msg"; msg.textContent="";
+  if(!email||!pass){msg.classList.add("err");msg.textContent="Email and password required.";return}
+  if(authMode==="signup"&&!name){msg.classList.add("err");msg.textContent="Please enter your name.";return}
+  $("authBtn").disabled=true;
+  try{
+    if(authMode==="signup"){
+      const {data,error}=await sb.auth.signUp({email,password:pass});
+      if(error)throw error;
+      if(data.user){
+        // create profile row
+        await sb.from("profiles").insert({id:data.user.id,display_name:name});
+      }
+      if(!data.session){msg.classList.add("ok");msg.textContent="Check your email to confirm, then log in.";setAuthMode("login");$("authBtn").disabled=false;return}
+    }else{
+      const {error}=await sb.auth.signInWithPassword({email,password:pass});
+      if(error)throw error;
+    }
+    await boot();
+  }catch(e){msg.classList.add("err");msg.textContent=e.message||"Something went wrong.";$("authBtn").disabled=false}
+}
+async function doSignout(){
+  if(realtimeChan){sb.removeChannel(realtimeChan);realtimeChan=null}
+  await sb.auth.signOut();
+  me=null;household=null;
+  show("authView");
+}
+
+/* ---------- HOUSEHOLD ---------- */
+async function createHousehold(){
+  const name=$("newHhName").value.trim()||"Home";
+  $("setupMsg").textContent="";
+  const {data,error}=await sb.from("households").insert({name}).select().single();
+  if(error){$("setupMsg").className="auth-msg err";$("setupMsg").textContent=error.message;return}
+  await sb.from("profiles").update({household_id:data.id}).eq("id",me.id);
+  me.household_id=data.id;
+  await boot();
+}
+async function joinHousehold(){
+  const code=$("joinCode").value.trim().toLowerCase();
+  $("setupMsg").textContent="";
+  if(code.length!==6){$("setupMsg").className="auth-msg err";$("setupMsg").textContent="Code must be 6 characters.";return}
+  const {data,error}=await sb.from("households").select("id").eq("join_code",code).maybeSingle();
+  if(error||!data){$("setupMsg").className="auth-msg err";$("setupMsg").textContent="No household with that code.";return}
+  await sb.from("profiles").update({household_id:data.id}).eq("id",me.id);
+  me.household_id=data.id;
+  await boot();
+}
+
+/* ---------- BOOT / LOAD ---------- */
+async function boot(){
+  show("loadingView");
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user){show("authView");return}
+  // load my profile
+  let {data:prof}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
+  if(!prof){
+    // profile missing (e.g. email confirm flow) — create a stub
+    const nm=(user.email||"Member").split("@")[0];
+    await sb.from("profiles").insert({id:user.id,display_name:nm});
+    prof={id:user.id,display_name:nm,household_id:null};
+  }
+  me=prof;
+  if(!me.household_id){show("setupView");return}
+  // load household + members
+  const {data:hh}=await sb.from("households").select("*").eq("id",me.household_id).single();
+  household=hh;
+  const {data:mem}=await sb.from("profiles").select("id,display_name").eq("household_id",me.household_id);
+  members=mem||[];
+  entry.inc=me.id;
+  subscribeRealtime();
+  await loadExpenses();
+  show("appView");
+}
+
+async function loadExpenses(){
+  const start=new Date(viewDate.getFullYear(),viewDate.getMonth(),1).toISOString().slice(0,10);
+  const end=new Date(viewDate.getFullYear(),viewDate.getMonth()+1,1).toISOString().slice(0,10);
+  const {data,error}=await sb.from("expenses")
+    .select("*")
+    .gte("expense_date",start).lt("expense_date",end)
+    .eq("deleted",false)
+    .order("expense_date",{ascending:false}).order("created_at",{ascending:false});
+  if(error){toast(error.message);return}
+  expenses=data||[];
+  render();
+}
+
+function subscribeRealtime(){
+  if(realtimeChan)return;
+  realtimeChan=sb.channel("expenses-live")
+    .on("postgres_changes",{event:"*",schema:"public",table:"expenses"},()=>{loadExpenses()})
+    .subscribe();
+}
+
+/* ---------- RENDER ---------- */
+function memberName(id){const m=members.find(m=>m.id===id);return m?m.display_name:"—"}
+function changeMonth(d){viewDate.setMonth(viewDate.getMonth()+d);loadExpenses()}
+function setFilter(f){filter=f;["all","mine","private"].forEach(x=>$("f"+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle("on",x===f));render()}
+
+function visibleRows(){
+  // RLS already ensures we only RECEIVE shared rows + our own private rows.
+  if(filter==="all")     return expenses.filter(e=>e.visibility==="shared");
+  if(filter==="mine")    return expenses.filter(e=>e.visibility==="shared" && e.incurred_by===me.id);
+  if(filter==="private") return expenses.filter(e=>e.visibility==="private");
+  return expenses;
+}
+
+function render(){
+  $("monthLabel").textContent=MONTHS[viewDate.getMonth()]+" "+viewDate.getFullYear();
+  const rows=visibleRows();
+  const total=rows.reduce((s,e)=>s+Number(e.amount),0);
+  $("monthTotal").textContent=fmt(total);
+  $("sumLbl").textContent = filter==="private" ? "My private this month" : filter==="mine" ? "My spending this month" : "Household this month";
+  $("monthSub").textContent=rows.length?rows.length+" expense"+(rows.length>1?"s":""):"No expenses yet";
+
+  const list=$("txnList");
+  if(!rows.length){list.innerHTML=`<div class="empty"><div class="big">📒</div><p>Nothing here yet for this view.</p></div>`;return}
+  const groups={};
+  rows.forEach(e=>{(groups[e.expense_date]=groups[e.expense_date]||[]).push(e)});
+  list.innerHTML=Object.entries(groups).map(([date,items])=>{
+    const dayTot=items.reduce((s,e)=>s+Number(e.amount),0);
+    const lis=items.map(e=>{
+      const lock=e.visibility==="private"?`<span class="lock">🔒</span>`:"";
+      const who=memberName(e.incurred_by);
+      const byline=e.logged_by!==e.incurred_by?`${esc(e.category)} · ${esc(who)} · logged by ${esc(memberName(e.logged_by))}`:`${esc(e.category)} · ${esc(who)}`;
+      return `<li class="txn"><span class="dot" style="background:${catColor(e.category)}"></span>
+        <div class="meta"><div class="note">${lock}${esc(e.note||e.category)}</div><div class="det">${byline}</div></div>
+        <span class="val">${fmt(e.amount)}</span></li>`;
+    }).join("");
+    return `<div class="day-label"><span>${dayLabel(date)}</span><span>${fmt(dayTot)}</span></div><ul class="txns">${lis}</ul>`;
+  }).join("");
+}
+function dayLabel(iso){
+  const d=new Date(iso+"T00:00"),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
+  if(d.toDateString()===t.toDateString())return "Today";
+  if(d.toDateString()===y.toDateString())return "Yesterday";
+  return d.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"});
+}
+
+/* ---------- ENTRY ---------- */
+function openEntry(){
+  entry={vis:"shared",cat:null,inc:me.id};
+  $("amtField").value="";$("noteField").value="";
+  $("dateField").value=new Date().toISOString().slice(0,10);
+  renderCatChips();renderIncChips();renderVis();
+  openSheet("entrySheet");
+  setTimeout(()=>$("amtField").focus(),300);
+}
+function renderCatChips(){
+  $("catChips").innerHTML=CATEGORIES.map(c=>`<div class="chip ${entry.cat===c.name?'sel':''}" onclick="pickCat('${c.name}')"><span class="cdot" style="background:${c.color}"></span>${c.name}</div>`).join("");
+}
+function pickCat(n){entry.cat=n;renderCatChips()}
+function renderVis(){
+  document.querySelectorAll("#visSeg button").forEach(b=>{
+    const on=b.dataset.vis===entry.vis;
+    b.classList.toggle("on",on);
+    b.classList.toggle("priv",on&&entry.vis==="private");
+  });
+  // private locks attribution to self
+  $("incLbl").textContent = entry.vis==="private" ? "Spent by (private = you)" : "Spent by";
+  renderIncChips();
+}
+function setVis(v){entry.vis=v;if(v==="private")entry.inc=me.id;renderVis()}
+function renderIncChips(){
+  const locked=entry.vis==="private";
+  $("incChips").innerHTML=members.map(m=>{
+    const sel=entry.inc===m.id;
+    const dis=locked&&m.id!==me.id;
+    return `<div class="chip ${sel?'sel':''}" style="${dis?'opacity:.35;pointer-events:none':''}" onclick="pickInc('${m.id}')">${esc(m.display_name)}${m.id===me.id?' (you)':''}</div>`;
+  }).join("");
+}
+function pickInc(id){if(entry.vis==="private"&&id!==me.id)return;entry.inc=id;renderIncChips()}
+
+async function saveExpense(){
+  const amt=parseFloat(($("amtField").value||"").replace(/[^0-9.]/g,""));
+  if(!amt||amt<=0){toast("Enter an amount");return}
+  if(!entry.cat){toast("Pick a category");return}
+  if(!entry.inc){toast("Pick who spent it");return}
+  $("saveBtn").disabled=true;
+  const row={
+    household_id:me.household_id,
+    amount:amt,
+    category:entry.cat,
+    note:$("noteField").value.trim(),
+    expense_date:$("dateField").value,
+    incurred_by:entry.inc,
+    logged_by:me.id,
+    visibility:entry.vis,
+    account_type:"expense"
+  };
+  const {error}=await sb.from("expenses").insert(row);
+  $("saveBtn").disabled=false;
+  if(error){toast(error.message);return}
+  closeSheets();
+  toast((entry.vis==="private"?"🔒 Private ":"")+"saved "+fmt(amt));
+  loadExpenses();
+}
+
+/* ---------- MENU ---------- */
+function openMenu(){
+  $("meName").textContent=me.display_name;
+  $("hhName").textContent=household.name;
+  $("hhCode").textContent=household.join_code;
+  openSheet("menuSheet");
+}
+function copyCode(){
+  navigator.clipboard?.writeText(household.join_code).then(()=>toast("Code copied")).catch(()=>toast(household.join_code));
+}
+
+/* ---------- SHEETS ---------- */
+function openSheet(id){$("scrim").classList.add("open");$(id).classList.add("open")}
+function closeSheets(){$("scrim").classList.remove("open");document.querySelectorAll(".sheet").forEach(s=>s.classList.remove("open"))}
+
+$("amtField").addEventListener("input",e=>{e.target.value=e.target.value.replace(/[^0-9.]/g,"").replace(/(\..*)\./g,"$1")});
+
+/* ---------- service worker (install support) ---------- */
+if("serviceWorker" in navigator){
+  const sw=`self.addEventListener("install",e=>self.skipWaiting());self.addEventListener("activate",e=>self.clients.claim());`;
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:"text/javascript"}))).catch(()=>{});
+}
+
+/* ---------- start ---------- */
+sb.auth.onAuthStateChange((_e,session)=>{});
+boot();
+</script>
+</body>
+</html>
